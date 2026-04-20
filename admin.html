@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shopix Admin Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+  :root {
+    --primary: #2874f0; --primary-dark: #0c5bd4;
+    --accent: #00b96b; --danger: #e53935; --warn: #ff6600;
+    --bg: #f0f2f5; --white: #fff; --text: #212121;
+    --text-light: #666; --border: #e0e0e0;
+    --sidebar-w: 240px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Poppins',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+  /* LOGIN PAGE */
+  #loginPage { position:fixed; inset:0; background:linear-gradient(135deg,#1a237e,#0288d1); display:flex; align-items:center; justify-content:center; z-index:9999; }
+  .login-card { background:white; border-radius:20px; padding:40px 36px; width:360px; box-shadow:0 24px 64px rgba(0,0,0,0.3); animation:popIn 0.4s ease; }
+  @keyframes popIn{from{transform:scale(0.85);opacity:0}to{transform:scale(1);opacity:1}}
+  .login-logo { text-align:center; margin-bottom:24px; }
+  .login-logo h1 { font-size:32px; font-weight:800; color:var(--primary); }
+  .login-logo p { font-size:13px; color:var(--text-light); margin-top:4px; }
+  .login-badge { background:linear-gradient(135deg,var(--primary),#7c3aed); color:white; font-size:12px; font-weight:700; padding:3px 12px; border-radius:20px; display:inline-block; margin-bottom:20px; }
+  .lform-group { margin-bottom:16px; }
+  .lform-group label { display:block; font-size:13px; font-weight:600; margin-bottom:6px; }
+  .lform-group input { width:100%; border:1.5px solid var(--border); border-radius:8px; padding:10px 14px; font-size:14px; font-family:'Poppins',sans-serif; outline:none; transition:border-color 0.2s; }
+  .lform-group input:focus { border-color:var(--primary); }
+  .login-btn { width:100%; padding:13px; background:linear-gradient(135deg,var(--primary),#0c5bd4); color:white; border:none; border-radius:8px; font-size:15px; font-weight:700; cursor:pointer; font-family:'Poppins',sans-serif; transition:transform 0.15s; }
+  .login-btn:hover { transform:scale(1.02); }
+  .login-error { background:#ffebee; color:#c62828; border-radius:6px; padding:8px 12px; font-size:12px; font-weight:600; margin-bottom:12px; display:none; }
+
+  /* ADMIN LAYOUT */
+  #adminLayout { display:none; min-height:100vh; }
+  .sidebar { position:fixed; left:0; top:0; width:var(--sidebar-w); height:100vh; background:linear-gradient(180deg,#1a237e,#0d47a1); color:white; display:flex; flex-direction:column; z-index:100; overflow-y:auto; }
+  .sidebar-logo { padding:24px 20px 16px; border-bottom:1px solid rgba(255,255,255,0.1); }
+  .sidebar-logo h2 { font-size:22px; font-weight:800; color:white; }
+  .sidebar-logo h2 span { color:#ffd700; font-style:italic; }
+  .sidebar-logo p { font-size:11px; color:rgba(255,255,255,0.6); margin-top:2px; }
+  .sidebar-nav { flex:1; padding:16px 0; }
+  .nav-item { display:flex; align-items:center; gap:12px; padding:12px 20px; cursor:pointer; transition:all 0.2s; color:rgba(255,255,255,0.75); font-size:14px; font-weight:500; border-left:3px solid transparent; }
+  .nav-item:hover { background:rgba(255,255,255,0.1); color:white; }
+  .nav-item.active { background:rgba(255,255,255,0.15); color:white; border-left-color:#ffd700; }
+  .nav-item i { width:20px; text-align:center; font-size:16px; }
+  .nav-badge { margin-left:auto; background:var(--danger); color:white; font-size:10px; font-weight:700; padding:2px 7px; border-radius:10px; }
+  .sidebar-footer { padding:16px 20px; border-top:1px solid rgba(255,255,255,0.1); }
+  .sidebar-user { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+  .sidebar-avatar { width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; font-size:16px; }
+  .sidebar-user-info p { font-size:12px; font-weight:600; color:white; }
+  .sidebar-user-info span { font-size:10px; color:rgba(255,255,255,0.6); }
+  .logout-btn { width:100%; padding:8px; background:rgba(255,255,255,0.1); color:white; border:1px solid rgba(255,255,255,0.2); border-radius:6px; font-size:12px; cursor:pointer; font-family:'Poppins',sans-serif; transition:background 0.2s; }
+  .logout-btn:hover { background:rgba(255,255,255,0.2); }
+
+  /* MAIN CONTENT */
+  .main { margin-left:var(--sidebar-w); min-height:100vh; }
+  .topbar { background:white; padding:16px 24px; display:flex; align-items:center; justify-content:space-between; box-shadow:0 2px 8px rgba(0,0,0,0.06); position:sticky; top:0; z-index:50; }
+  .topbar h1 { font-size:20px; font-weight:700; }
+  .topbar-actions { display:flex; align-items:center; gap:12px; }
+  .page-content { padding:24px; display:none; }
+  .page-content.active { display:block; }
+
+  /* STAT CARDS */
+  .stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px; }
+  .stat-card { background:white; border-radius:12px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.06); display:flex; align-items:center; gap:16px; }
+  .stat-icon { width:52px; height:52px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; }
+  .stat-icon.blue { background:#e8f0fe; }
+  .stat-icon.green { background:#e8f5e9; }
+  .stat-icon.orange { background:#fff3e0; }
+  .stat-icon.red { background:#ffebee; }
+  .stat-label { font-size:12px; color:var(--text-light); margin-bottom:4px; }
+  .stat-value { font-size:24px; font-weight:800; color:var(--text); }
+  .stat-sub { font-size:11px; color:var(--accent); font-weight:600; margin-top:2px; }
+
+  /* TABLE */
+  .table-card { background:white; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.06); overflow:hidden; }
+  .table-header { padding:16px 20px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border); }
+  .table-header h3 { font-size:16px; font-weight:700; }
+  table { width:100%; border-collapse:collapse; }
+  thead th { background:#f8f9fa; padding:12px 16px; text-align:left; font-size:12px; font-weight:700; color:var(--text-light); text-transform:uppercase; letter-spacing:0.5px; }
+  tbody tr { border-bottom:1px solid #f5f5f5; transition:background 0.15s; }
+  tbody tr:hover { background:#f8f9fb; }
+  tbody td { padding:12px 16px; font-size:13px; }
+  .emoji-cell { font-size:28px; width:48px; height:48px; background:#fafafa; border-radius:8px; display:flex; align-items:center; justify-content:center; }
+  .status-badge { font-size:11px; font-weight:700; padding:3px 10px; border-radius:20px; display:inline-block; }
+  .status-badge.confirmed { background:#e8f5e9; color:#2e7d32; }
+  .status-badge.pending { background:#fff3e0; color:#e65100; }
+  .status-badge.shipped { background:#e3f2fd; color:#1565c0; }
+  .status-badge.delivered { background:#e0f2f1; color:#00695c; }
+  .status-badge.cancelled { background:#ffebee; color:#c62828; }
+  .status-badge.instock { background:#e8f5e9; color:#2e7d32; }
+  .status-badge.outofstock { background:#ffebee; color:#c62828; }
+
+  /* BUTTONS */
+  .btn { padding:8px 16px; border:none; border-radius:6px; font-size:13px; font-weight:600; cursor:pointer; font-family:'Poppins',sans-serif; display:inline-flex; align-items:center; gap:6px; transition:all 0.2s; }
+  .btn-primary { background:var(--primary); color:white; }
+  .btn-primary:hover { background:var(--primary-dark); }
+  .btn-success { background:var(--accent); color:white; }
+  .btn-danger { background:var(--danger); color:white; }
+  .btn-danger:hover { background:#c62828; }
+  .btn-ghost { background:#f5f5f5; color:var(--text); }
+  .btn-ghost:hover { background:#e0e0e0; }
+  .btn-sm { padding:5px 10px; font-size:12px; }
+  .btn-icon { width:32px; height:32px; padding:0; display:inline-flex; align-items:center; justify-content:center; border-radius:6px; }
+
+  /* MODAL */
+  .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:2000; display:none; align-items:center; justify-content:center; padding:16px; overflow-y:auto; }
+  .modal-overlay.open { display:flex; }
+  .modal { background:white; border-radius:16px; width:100%; max-width:560px; box-shadow:0 24px 64px rgba(0,0,0,0.2); animation:popIn 0.3s ease; }
+  .modal-head { padding:20px 24px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+  .modal-head h3 { font-size:16px; font-weight:700; }
+  .modal-close { background:none; border:none; font-size:20px; cursor:pointer; color:var(--text-light); }
+  .modal-body { padding:24px; }
+  .modal-footer { padding:16px 24px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:10px; }
+  .form-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .form-group { margin-bottom:16px; }
+  .form-group label { display:block; font-size:13px; font-weight:600; margin-bottom:6px; }
+  .form-group input, .form-group select, .form-group textarea { width:100%; border:1.5px solid var(--border); border-radius:8px; padding:10px 14px; font-size:13px; font-family:'Poppins',sans-serif; outline:none; transition:border-color 0.2s; }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color:var(--primary); }
+  .form-group textarea { resize:vertical; min-height:80px; }
+
+  /* SEARCH & FILTER BAR */
+  .filter-bar { display:flex; gap:12px; margin-bottom:16px; align-items:center; flex-wrap:wrap; }
+  .filter-bar input { flex:1; min-width:200px; border:1.5px solid var(--border); border-radius:8px; padding:9px 14px; font-size:13px; font-family:'Poppins',sans-serif; outline:none; }
+  .filter-bar input:focus { border-color:var(--primary); }
+  .filter-bar select { border:1.5px solid var(--border); border-radius:8px; padding:9px 14px; font-size:13px; font-family:'Poppins',sans-serif; outline:none; cursor:pointer; }
+
+  /* RECENT ORDERS */
+  .orders-timeline { padding:16px 20px; }
+  .order-row { display:flex; gap:16px; padding:14px 0; border-bottom:1px solid #f5f5f5; align-items:center; }
+  .order-row:last-child { border-bottom:none; }
+
+  /* ANALYTICS CHARTS (CSS-based) */
+  .chart-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px; }
+  .chart-card { background:white; border-radius:12px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.06); }
+  .chart-card h4 { font-size:14px; font-weight:700; margin-bottom:16px; }
+  .bar-chart { display:flex; align-items:flex-end; gap:8px; height:120px; }
+  .bar-item { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .bar { border-radius:4px 4px 0 0; width:100%; transition:height 0.5s; }
+  .bar-label { font-size:10px; color:var(--text-light); text-align:center; }
+  .bar-val { font-size:10px; font-weight:700; color:var(--text); }
+  .pie-row { display:flex; gap:12px; align-items:center; margin-bottom:10px; }
+  .pie-dot { width:12px; height:12px; border-radius:50%; flex-shrink:0; }
+  .pie-label { font-size:13px; flex:1; }
+  .pie-pct { font-size:13px; font-weight:700; }
+  .pie-bar { flex:1; height:8px; border-radius:4px; background:#f0f0f0; overflow:hidden; }
+  .pie-fill { height:100%; border-radius:4px; }
+
+  /* TOAST */
+  .toast { position:fixed; bottom:24px; right:24px; background:#323232; color:white; padding:12px 20px; border-radius:8px; font-size:13px; font-weight:500; z-index:9999; opacity:0; transition:all 0.3s; transform:translateY(10px); pointer-events:none; }
+  .toast.show { opacity:1; transform:translateY(0); }
+  .toast.success { background:var(--accent); }
+  .toast.error { background:var(--danger); }
+
+  /* LOADING */
+  .loading-spinner { display:flex; align-items:center; justify-content:center; padding:40px; color:var(--text-light); gap:12px; font-size:14px; }
+  .spinner { width:24px; height:24px; border:3px solid var(--border); border-top-color:var(--primary); border-radius:50%; animation:spin 0.8s linear infinite; }
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* EMPTY STATE */
+  .empty-state { text-align:center; padding:60px 20px; color:var(--text-light); }
+  .empty-state i { font-size:48px; color:var(--border); margin-bottom:16px; display:block; }
+
+  @media(max-width:768px){
+    .sidebar { width:60px; }
+    .nav-item span, .sidebar-logo p, .sidebar-user-info, .logout-btn span, .sidebar-logo h2 { display:none; }
+    .nav-item { justify-content:center; padding:14px; }
+    .main { margin-left:60px; }
+    .stats-grid { grid-template-columns:repeat(2,1fr); }
+    .chart-grid { grid-template-columns:1fr; }
+    .form-row { grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN PAGE -->
+<div id="loginPage">
+  <div class="login-card">
+    <div class="login-logo">
+      <h1>Shop<span style="color:#ff6600;font-style:italic">ix</span></h1>
+      <p>Admin Dashboard</p>
+      <div class="login-badge">🔐 Admin Only</div>
+    </div>
+    <div class="login-error" id="loginError"></div>
+    <div class="lform-group"><label>Admin Email</label><input type="email" id="loginEmail" placeholder="admin@shopix.com" onkeydown="if(event.key==='Enter')adminLogin()"></div>
+    <div class="lform-group"><label>Password</label><input type="password" id="loginPassword" placeholder="••••••••" onkeydown="if(event.key==='Enter')adminLogin()"></div>
+    <button class="login-btn" onclick="adminLogin()"><i class="fas fa-sign-in-alt"></i> &nbsp;Login to Admin</button>
+  </div>
+</div>
+
+<!-- ADMIN LAYOUT -->
+<div id="adminLayout">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <h2>Shop<span>ix</span></h2>
+      <p>Admin Panel v2.0</p>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-item active" onclick="showPage('dashboard')"><i class="fas fa-chart-line"></i><span>Dashboard</span></div>
+      <div class="nav-item" onclick="showPage('products')"><i class="fas fa-box"></i><span>Products</span></div>
+      <div class="nav-item" onclick="showPage('orders')"><i class="fas fa-shopping-bag"></i><span>Orders</span><div class="nav-badge" id="pendingBadge">0</div></div>
+      <div class="nav-item" onclick="showPage('users')"><i class="fas fa-users"></i><span>Users</span></div>
+      <div class="nav-item" onclick="showPage('analytics')"><i class="fas fa-chart-bar"></i><span>Analytics</span></div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar">👤</div>
+        <div class="sidebar-user-info"><p id="adminName">Admin</p><span>Super Admin</span></div>
+      </div>
+      <button class="logout-btn" onclick="adminLogout()"><i class="fas fa-sign-out-alt"></i> <span>Logout</span></button>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <h1 id="pageTitle">📊 Dashboard</h1>
+      <div class="topbar-actions">
+        <span style="font-size:12px;color:var(--text-light)" id="lastUpdated"></span>
+        <button class="btn btn-ghost btn-sm" onclick="refreshAll()"><i class="fas fa-sync-alt"></i> Refresh</button>
+        <button class="btn btn-primary btn-sm" onclick="openAddProduct()"><i class="fas fa-plus"></i> Add Product</button>
+      </div>
+    </div>
+
+    <!-- DASHBOARD PAGE -->
+    <div class="page-content active" id="page-dashboard">
+      <div class="stats-grid" id="statsGrid">
+        <div class="loading-spinner" style="grid-column:1/-1"><div class="spinner"></div> Loading stats...</div>
+      </div>
+      <div class="chart-grid" id="chartGrid"></div>
+      <div class="table-card">
+        <div class="table-header"><h3>📦 Recent Orders</h3><button class="btn btn-ghost btn-sm" onclick="showPage('orders')">View All →</button></div>
+        <div id="recentOrdersTable"><div class="loading-spinner"><div class="spinner"></div></div></div>
+      </div>
+    </div>
+
+    <!-- PRODUCTS PAGE -->
+    <div class="page-content" id="page-products">
+      <div class="filter-bar">
+        <input type="text" id="productSearch" placeholder="🔍 Search products..." oninput="filterProducts()">
+        <select id="catFilter" onchange="filterProducts()">
+          <option value="">All Categories</option>
+          <option value="electronics">Electronics</option>
+          <option value="fashion">Fashion</option>
+          <option value="home">Home</option>
+          <option value="appliances">Appliances</option>
+          <option value="beauty">Beauty</option>
+          <option value="sports">Sports</option>
+          <option value="grocery">Grocery</option>
+          <option value="books">Books</option>
+          <option value="toys">Toys</option>
+        </select>
+        <button class="btn btn-primary" onclick="openAddProduct()"><i class="fas fa-plus"></i> Add Product</button>
+      </div>
+      <div class="table-card">
+        <div class="table-header"><h3>📦 All Products</h3><span id="productCount" style="font-size:13px;color:var(--text-light)">0 products</span></div>
+        <div id="productsTable"><div class="loading-spinner"><div class="spinner"></div></div></div>
+      </div>
+    </div>
+
+    <!-- ORDERS PAGE -->
+    <div class="page-content" id="page-orders">
+      <div class="filter-bar">
+        <input type="text" id="orderSearch" placeholder="🔍 Search by email or order ID..." oninput="filterOrders()">
+        <select id="statusFilter" onchange="filterOrders()">
+          <option value="">All Status</option>
+          <option value="confirmed">Confirmed</option>
+          <option value="shipped">Shipped</option>
+          <option value="delivered">Delivered</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+      </div>
+      <div class="table-card">
+        <div class="table-header"><h3>🛍️ All Orders</h3><span id="orderCount" style="font-size:13px;color:var(--text-light)">0 orders</span></div>
+        <div id="ordersTable"><div class="loading-spinner"><div class="spinner"></div></div></div>
+      </div>
+    </div>
+
+    <!-- USERS PAGE -->
+    <div class="page-content" id="page-users">
+      <div class="table-card">
+        <div class="table-header"><h3>👥 Registered Users</h3><span id="userCount" style="font-size:13px;color:var(--text-light)"></span></div>
+        <div id="usersTable"><div class="loading-spinner"><div class="spinner"></div></div></div>
+      </div>
+    </div>
+
+    <!-- ANALYTICS PAGE -->
+    <div class="page-content" id="page-analytics">
+      <div class="chart-grid" id="analyticsCharts"></div>
+      <div class="table-card" style="margin-top:0">
+        <div class="table-header"><h3>🏆 Top Selling Products</h3></div>
+        <div id="topProducts"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADD/EDIT PRODUCT MODAL -->
+<div class="modal-overlay" id="productModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="productModalTitle"><i class="fas fa-box"></i> Add Product</h3>
+      <button class="modal-close" onclick="closeModal('productModal')"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editProductId">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Product Name *</label>
+          <input type="text" id="pName" placeholder="e.g. iPhone 15 Pro Max">
+        </div>
+        <div class="form-group">
+          <label>Brand *</label>
+          <input type="text" id="pBrand" placeholder="e.g. Apple">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Sale Price (₹) *</label>
+          <input type="number" id="pPrice" placeholder="134900">
+        </div>
+        <div class="form-group">
+          <label>Original Price (₹) *</label>
+          <input type="number" id="pOriginal" placeholder="149900">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Category *</label>
+          <select id="pCategory">
+            <option value="">Select Category</option>
+            <option value="electronics">📱 Electronics</option>
+            <option value="fashion">👗 Fashion</option>
+            <option value="home">🏠 Home</option>
+            <option value="appliances">🍳 Appliances</option>
+            <option value="beauty">💄 Beauty</option>
+            <option value="sports">⚽ Sports</option>
+            <option value="grocery">🛒 Grocery</option>
+            <option value="books">📚 Books</option>
+            <option value="toys">🧸 Toys</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Emoji Icon *</label>
+          <input type="text" id="pEmoji" placeholder="📱" maxlength="4">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Rating (1-5)</label>
+          <input type="number" id="pRating" placeholder="4.5" min="1" max="5" step="0.1">
+        </div>
+        <div class="form-group">
+          <label>Total Reviews</label>
+          <input type="number" id="pReviews" placeholder="1000">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Badge (optional)</label>
+          <input type="text" id="pBadge" placeholder="e.g. Hot, New, 40% Off">
+        </div>
+        <div class="form-group">
+          <label>Stock Status</label>
+          <select id="pStock">
+            <option value="instock">In Stock</option>
+            <option value="outofstock">Out of Stock</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea id="pDesc" placeholder="Product description..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('productModal')">Cancel</button>
+      <button class="btn btn-primary" id="saveProductBtn" onclick="saveProduct()"><i class="fas fa-save"></i> Save Product</button>
+    </div>
+  </div>
+</div>
+
+<!-- ORDER DETAIL MODAL -->
+<div class="modal-overlay" id="orderModal">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-head">
+      <h3><i class="fas fa-shopping-bag"></i> Order Details</h3>
+      <button class="modal-close" onclick="closeModal('orderModal')"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body" id="orderModalBody"></div>
+    <div class="modal-footer">
+      <select id="orderStatusSelect" style="border:1.5px solid var(--border);border-radius:6px;padding:8px 12px;font-size:13px;font-family:'Poppins',sans-serif;outline:none">
+        <option value="confirmed">Confirmed</option>
+        <option value="shipped">Shipped</option>
+        <option value="delivered">Delivered</option>
+        <option value="cancelled">Cancelled</option>
+      </select>
+      <button class="btn btn-primary" onclick="updateOrderStatus()"><i class="fas fa-save"></i> Update Status</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- FIREBASE SDK -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, serverTimestamp, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBa2yg_3UYg43uFmaSCH-VKiXXN7f5WBGg",
+  authDomain: "shopix-ec11c.firebaseapp.com",
+  databaseURL: "https://shopix-ec11c-default-rtdb.firebaseio.com",
+  projectId: "shopix-ec11c",
+  storageBucket: "shopix-ec11c.firebasestorage.app",
+  messagingSenderId: "750936730906",
+  appId: "1:750936730906:web:903be3e740746612f710a3",
+  measurementId: "G-3P7ZWT1PXG"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+// ADMIN EMAIL — change if needed
+const ADMIN_EMAIL = 'doosshivam@gmail.com';
+
+let allProducts = [], allOrders = [], currentOrderId = null;
+
+// ===== AUTH =====
+onAuthStateChanged(auth, user => {
+  if (user) {
+    document.getElementById('loginPage').style.display = 'none';
+    document.getElementById('adminLayout').style.display = 'flex';
+    document.getElementById('adminName').textContent = user.displayName || user.email.split('@')[0];
+    loadAll();
+  } else {
+    document.getElementById('loginPage').style.display = 'flex';
+    document.getElementById('adminLayout').style.display = 'none';
+  }
+});
+
+window.adminLogin = async () => {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPassword').value;
+  const errEl = document.getElementById('loginError');
+  errEl.style.display = 'none';
+  if (!email || !pass) { errEl.textContent = 'Email aur password dono zaroori hain.'; errEl.style.display = 'block'; return; }
+  try {
+    await signInWithEmailAndPassword(auth, email, pass);
+  } catch(e) {
+    const msgs = {'auth/wrong-password':'Wrong password.','auth/user-not-found':'User nahi mila.','auth/invalid-email':'Invalid email.'};
+    errEl.textContent = msgs[e.code] || 'Login failed: ' + e.message;
+    errEl.style.display = 'block';
+  }
+};
+
+window.adminLogout = async () => {
+  if (confirm('Admin se logout karna chahte ho?')) {
+    await signOut(auth);
+    showToast('Logged out!');
+  }
+};
+
+// ===== LOAD ALL DATA =====
+async function loadAll() {
+  await Promise.all([loadProducts(), loadOrders()]);
+  renderDashboard();
+  document.getElementById('lastUpdated').textContent = 'Updated: ' + new Date().toLocaleTimeString('en-IN');
+}
+
+async function loadProducts() {
+  try {
+    const snap = await getDocs(query(collection(db,'products'), orderBy('createdAt','desc')));
+    allProducts = snap.docs.map(d => ({id: d.id, ...d.data()}));
+  } catch(e) {
+    console.error('Products load error:', e);
+    allProducts = [];
+  }
+}
+
+async function loadOrders() {
+  try {
+    const snap = await getDocs(query(collection(db,'orders'), orderBy('createdAt','desc')));
+    allOrders = snap.docs.map(d => ({id: d.id, ...d.data()}));
+    const pending = allOrders.filter(o=>o.status==='confirmed').length;
+    document.getElementById('pendingBadge').textContent = pending;
+    document.getElementById('pendingBadge').style.display = pending>0?'block':'none';
+  } catch(e) {
+    console.error('Orders load error:', e);
+    allOrders = [];
+  }
+}
+
+// ===== DASHBOARD =====
+function renderDashboard() {
+  const totalRevenue = allOrders.filter(o=>o.status!=='cancelled').reduce((a,o)=>a+o.total,0);
+  const todayOrders = allOrders.filter(o=>{
+    if(!o.createdAt)return false;
+    const d=o.createdAt.toDate?.();
+    return d && d.toDateString()===new Date().toDateString();
+  }).length;
+  const uniqueUsers = [...new Set(allOrders.map(o=>o.userId).filter(Boolean))].length;
+
+  document.getElementById('statsGrid').innerHTML = `
+    <div class="stat-card"><div class="stat-icon blue">💰</div><div><div class="stat-label">Total Revenue</div><div class="stat-value">₹${totalRevenue.toLocaleString('en-IN')}</div><div class="stat-sub">↑ All time</div></div></div>
+    <div class="stat-card"><div class="stat-icon green">📦</div><div><div class="stat-label">Total Orders</div><div class="stat-value">${allOrders.length}</div><div class="stat-sub">↑ ${todayOrders} today</div></div></div>
+    <div class="stat-card"><div class="stat-icon orange">🛍️</div><div><div class="stat-label">Products</div><div class="stat-value">${allProducts.length}</div><div class="stat-sub">In Firestore</div></div></div>
+    <div class="stat-card"><div class="stat-icon red">👥</div><div><div class="stat-label">Customers</div><div class="stat-value">${uniqueUsers}</div><div class="stat-sub">Registered users</div></div></div>
+  `;
+
+  // Category revenue chart
+  const catRevenue = {};
+  allOrders.filter(o=>o.status!=='cancelled').forEach(o=>{
+    (o.items||[]).forEach(item=>{
+      const p = allProducts.find(x=>x.id===item.id);
+      const cat = p?.category||'other';
+      catRevenue[cat] = (catRevenue[cat]||0) + item.price*item.qty;
+    });
+  });
+  const topCats = Object.entries(catRevenue).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const maxVal = Math.max(...topCats.map(c=>c[1]),1);
+  const colors = ['#2874f0','#00b96b','#ff6600','#e53935','#9c27b0','#ff9800'];
+  const catIcons = {electronics:'📱',fashion:'👗',home:'🏠',appliances:'🍳',beauty:'💄',sports:'⚽',grocery:'🛒',books:'📚',toys:'🧸'};
+
+  document.getElementById('chartGrid').innerHTML = `
+    <div class="chart-card">
+      <h4>📊 Revenue by Category</h4>
+      <div class="bar-chart">
+        ${topCats.length>0?topCats.map(([cat,val],i)=>`
+          <div class="bar-item">
+            <div class="bar-val">₹${(val/1000).toFixed(0)}k</div>
+            <div class="bar" style="height:${Math.max(10,val/maxVal*90)}px;background:${colors[i]};min-height:6px"></div>
+            <div class="bar-label">${catIcons[cat]||'📦'}</div>
+          </div>`).join(''):`<div style="color:var(--text-light);text-align:center;width:100%">No order data yet</div>`}
+      </div>
+    </div>
+    <div class="chart-card">
+      <h4>🍕 Order Status Breakdown</h4>
+      ${['confirmed','shipped','delivered','cancelled'].map((s,i)=>{
+        const count=allOrders.filter(o=>o.status===s).length;
+        const pct=allOrders.length?Math.round(count/allOrders.length*100):0;
+        const cs=['#2874f0','#ff9800','#00b96b','#e53935'];
+        return `<div class="pie-row">
+          <div class="pie-dot" style="background:${cs[i]}"></div>
+          <div class="pie-label">${s.charAt(0).toUpperCase()+s.slice(1)}</div>
+          <div class="pie-bar"><div class="pie-fill" style="width:${pct}%;background:${cs[i]}"></div></div>
+          <div class="pie-pct">${count} (${pct}%)</div>
+        </div>`;}).join('')}
+      ${allOrders.length===0?'<div style="color:var(--text-light);font-size:13px;text-align:center;padding:20px">No orders yet</div>':''}
+    </div>
+  `;
+
+  // Recent orders
+  const recent = allOrders.slice(0,6);
+  document.getElementById('recentOrdersTable').innerHTML = recent.length===0
+    ? `<div class="empty-state"><i class="fas fa-shopping-bag"></i><p>Koi order nahi aaya abhi</p></div>`
+    : `<table><thead><tr><th>Order ID</th><th>Customer</th><th>Items</th><th>Total</th><th>Status</th><th>Action</th></tr></thead><tbody>
+        ${recent.map(o=>`<tr>
+          <td style="font-family:monospace;font-size:12px">#${o.id.substring(0,8)}</td>
+          <td><div style="font-weight:600;font-size:13px">${o.userName||'Guest'}</div><div style="font-size:11px;color:var(--text-light)">${o.userEmail||''}</div></td>
+          <td>${(o.items||[]).length} items</td>
+          <td style="font-weight:700;color:var(--primary)">₹${o.total?.toLocaleString('en-IN')}</td>
+          <td><span class="status-badge ${o.status}">${o.status}</span></td>
+          <td><button class="btn btn-ghost btn-sm btn-icon" onclick="openOrderDetail('${o.id}')" title="View"><i class="fas fa-eye"></i></button></td>
+        </tr>`).join('')}
+      </tbody></table>`;
+}
+
+// ===== PRODUCTS =====
+window.filterProducts = () => {
+  const q = document.getElementById('productSearch').value.toLowerCase();
+  const cat = document.getElementById('catFilter').value;
+  const filtered = allProducts.filter(p=>
+    (!q || p.name.toLowerCase().includes(q) || p.brand.toLowerCase().includes(q)) &&
+    (!cat || p.category===cat)
+  );
+  renderProductsTable(filtered);
+};
+
+function renderProductsTable(list) {
+  document.getElementById('productCount').textContent = list.length + ' products';
+  if(list.length===0){
+    document.getElementById('productsTable').innerHTML=`<div class="empty-state"><i class="fas fa-box"></i><p>Koi product nahi mila</p></div>`;
+    return;
+  }
+  document.getElementById('productsTable').innerHTML=`<table>
+    <thead><tr><th>Emoji</th><th>Product</th><th>Category</th><th>Price</th><th>Discount</th><th>Rating</th><th>Stock</th><th>Actions</th></tr></thead>
+    <tbody>
+      ${list.map(p=>{
+        const disc=Math.round((1-p.price/p.original)*100);
+        return `<tr>
+          <td><div class="emoji-cell">${p.emoji}</div></td>
+          <td><div style="font-weight:600;font-size:13px;max-width:200px">${p.name}</div><div style="font-size:11px;color:var(--text-light)">${p.brand} ${p.badge?`• <span style="color:var(--warn)">${p.badge}</span>`:''}</div></td>
+          <td><span class="status-badge confirmed">${p.category}</span></td>
+          <td><div style="font-weight:700">₹${Number(p.price).toLocaleString('en-IN')}</div><div style="font-size:11px;color:var(--text-light);text-decoration:line-through">₹${Number(p.original).toLocaleString('en-IN')}</div></td>
+          <td style="font-weight:700;color:var(--accent)">${disc}%</td>
+          <td>⭐ ${p.rating} <span style="font-size:11px;color:var(--text-light)">(${Number(p.reviews||0).toLocaleString('en-IN')})</span></td>
+          <td><span class="status-badge ${p.stock||'instock'}">${p.stock==='outofstock'?'Out of Stock':'In Stock'}</span></td>
+          <td>
+            <button class="btn btn-ghost btn-sm btn-icon" onclick="openEditProduct('${p.id}')" title="Edit"><i class="fas fa-edit" style="color:var(--primary)"></i></button>
+            <button class="btn btn-danger btn-sm btn-icon" onclick="deleteProduct('${p.id}','${p.name.substring(0,20)}')" title="Delete"><i class="fas fa-trash"></i></button>
+          </td>
+        </tr>`;}).join('')}
+    </tbody></table>`;
+}
+
+window.openAddProduct = () => {
+  document.getElementById('productModalTitle').innerHTML = '<i class="fas fa-plus"></i> Add Product';
+  document.getElementById('editProductId').value = '';
+  document.getElementById('saveProductBtn').innerHTML = '<i class="fas fa-save"></i> Save Product';
+  ['pName','pBrand','pPrice','pOriginal','pBadge','pDesc','pEmoji'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('pRating').value='4.5';
+  document.getElementById('pReviews').value='100';
+  document.getElementById('pCategory').value='';
+  document.getElementById('pStock').value='instock';
+  openModal('productModal');
+};
+
+window.openEditProduct = (id) => {
+  const p = allProducts.find(x=>x.id===id);
+  if(!p)return;
+  document.getElementById('productModalTitle').innerHTML = '<i class="fas fa-edit"></i> Edit Product';
+  document.getElementById('editProductId').value = id;
+  document.getElementById('pName').value = p.name||'';
+  document.getElementById('pBrand').value = p.brand||'';
+  document.getElementById('pPrice').value = p.price||'';
+  document.getElementById('pOriginal').value = p.original||'';
+  document.getElementById('pCategory').value = p.category||'';
+  document.getElementById('pEmoji').value = p.emoji||'📦';
+  document.getElementById('pRating').value = p.rating||'4.5';
+  document.getElementById('pReviews').value = p.reviews||'100';
+  document.getElementById('pBadge').value = p.badge||'';
+  document.getElementById('pStock').value = p.stock||'instock';
+  document.getElementById('pDesc').value = p.desc||'';
+  openModal('productModal');
+};
+
+window.saveProduct = async () => {
+  const name=document.getElementById('pName').value.trim();
+  const brand=document.getElementById('pBrand').value.trim();
+  const price=parseFloat(document.getElementById('pPrice').value);
+  const original=parseFloat(document.getElementById('pOriginal').value);
+  const category=document.getElementById('pCategory').value;
+  const emoji=document.getElementById('pEmoji').value.trim()||'📦';
+  if(!name||!brand||!price||!original||!category){showToast('Sabhi required fields fill karo!','error');return;}
+  if(price>original){showToast('Sale price original se zyada nahi ho sakta!','error');return;}
+  const data={name,brand,price,original,category,emoji,rating:parseFloat(document.getElementById('pRating').value)||4.5,reviews:parseInt(document.getElementById('pReviews').value)||100,badge:document.getElementById('pBadge').value.trim()||null,stock:document.getElementById('pStock').value,desc:document.getElementById('pDesc').value.trim()};
+  const editId=document.getElementById('editProductId').value;
+  document.getElementById('saveProductBtn').innerHTML='<i class="fas fa-spinner fa-spin"></i> Saving...';
+  try {
+    if(editId){
+      await updateDoc(doc(db,'products',editId),data);
+      showToast('✅ Product updated!','success');
+    } else {
+      await addDoc(collection(db,'products'),{...data,createdAt:serverTimestamp()});
+      showToast('✅ Product added!','success');
+    }
+    closeModal('productModal');
+    await loadProducts();
+    filterProducts();
+    renderDashboard();
+  } catch(e){showToast('Error: '+e.message,'error');}
+  document.getElementById('saveProductBtn').innerHTML='<i class="fas fa-save"></i> Save Product';
+};
+
+window.deleteProduct = async (id, name) => {
+  if(!confirm(`"${name}" delete karna chahte ho? Yeh wapas nahi aayega!`))return;
+  try {
+    await deleteDoc(doc(db,'products',id));
+    allProducts=allProducts.filter(p=>p.id!==id);
+    filterProducts();
+    renderDashboard();
+    showToast('🗑️ Product deleted!','success');
+  } catch(e){showToast('Delete error: '+e.message,'error');}
+};
+
+// ===== ORDERS =====
+window.filterOrders = () => {
+  const q=document.getElementById('orderSearch').value.toLowerCase();
+  const status=document.getElementById('statusFilter').value;
+  const filtered=allOrders.filter(o=>
+    (!q||o.userEmail?.toLowerCase().includes(q)||o.id.includes(q)||o.userName?.toLowerCase().includes(q))&&
+    (!status||o.status===status)
+  );
+  renderOrdersTable(filtered);
+};
+
+function renderOrdersTable(list) {
+  document.getElementById('orderCount').textContent = list.length + ' orders';
+  if(list.length===0){
+    document.getElementById('ordersTable').innerHTML=`<div class="empty-state"><i class="fas fa-shopping-bag"></i><p>Koi order nahi mila</p></div>`;return;
+  }
+  document.getElementById('ordersTable').innerHTML=`<table>
+    <thead><tr><th>Order ID</th><th>Customer</th><th>Items</th><th>Total</th><th>Status</th><th>Date</th><th>Action</th></tr></thead>
+    <tbody>
+      ${list.map(o=>`<tr>
+        <td style="font-family:monospace;font-size:12px">#${o.id.substring(0,10)}</td>
+        <td><div style="font-weight:600;font-size:13px">${o.userName||'Guest'}</div><div style="font-size:11px;color:var(--text-light)">${o.userEmail||''}</div></td>
+        <td>${(o.items||[]).map(i=>`${i.emoji}`).join('')} <span style="font-size:12px;color:var(--text-light)">(${(o.items||[]).length})</span></td>
+        <td style="font-weight:700;color:var(--primary)">₹${o.total?.toLocaleString('en-IN')}</td>
+        <td><span class="status-badge ${o.status}">${o.status}</span></td>
+        <td style="font-size:12px;color:var(--text-light)">${o.createdAt?.toDate?o.createdAt.toDate().toLocaleDateString('en-IN'):'-'}</td>
+        <td><button class="btn btn-primary btn-sm btn-icon" onclick="openOrderDetail('${o.id}')" title="View"><i class="fas fa-eye"></i></button></td>
+      </tr>`).join('')}
+    </tbody></table>`;
+}
+
+window.openOrderDetail = (id) => {
+  const o=allOrders.find(x=>x.id===id);
+  if(!o)return;
+  currentOrderId=id;
+  document.getElementById('orderStatusSelect').value=o.status||'confirmed';
+  document.getElementById('orderModalBody').innerHTML=`
+    <div style="background:#f8f9fa;border-radius:8px;padding:14px;margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="font-size:12px;color:var(--text-light)">Order ID</span><span style="font-family:monospace;font-size:12px;font-weight:600">#${o.id.substring(0,15)}</span></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="font-size:12px;color:var(--text-light)">Customer</span><span style="font-size:13px;font-weight:600">${o.userName||'Guest'}</span></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px"><span style="font-size:12px;color:var(--text-light)">Email</span><span style="font-size:12px">${o.userEmail||'-'}</span></div>
+      <div style="display:flex;justify-content:space-between"><span style="font-size:12px;color:var(--text-light)">Date</span><span style="font-size:12px">${o.createdAt?.toDate?o.createdAt.toDate().toLocaleString('en-IN'):'-'}</span></div>
+    </div>
+    <div style="font-weight:700;margin-bottom:10px;font-size:14px">📦 Ordered Items</div>
+    ${(o.items||[]).map(item=>`
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #f5f5f5">
+        <div style="font-size:32px;width:44px;height:44px;background:#fafafa;border-radius:8px;display:flex;align-items:center;justify-content:center">${item.emoji}</div>
+        <div style="flex:1"><div style="font-size:13px;font-weight:500">${item.name}</div><div style="font-size:12px;color:var(--text-light)">Qty: ${item.qty} × ₹${Number(item.price).toLocaleString('en-IN')}</div></div>
+        <div style="font-weight:700;color:var(--primary)">₹${(item.qty*item.price).toLocaleString('en-IN')}</div>
+      </div>`).join('')}
+    <div style="background:#f0f5ff;border-radius:8px;padding:14px;margin-top:14px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px"><span>Subtotal</span><span>₹${o.subtotal?.toLocaleString('en-IN')}</span></div>
+      ${o.discount>0?`<div style="display:flex;justify-content:space-between;margin-bottom:6px;color:var(--accent)"><span>Discount ${o.coupon?`(${o.coupon})`:''}</span><span>-₹${o.discount?.toLocaleString('en-IN')}</span></div>`:''}
+      <div style="display:flex;justify-content:space-between;font-weight:700;font-size:16px;border-top:1px solid var(--border);padding-top:8px;margin-top:4px"><span>Total</span><span style="color:var(--primary)">₹${o.total?.toLocaleString('en-IN')}</span></div>
+    </div>`;
+  openModal('orderModal');
+};
+
+window.updateOrderStatus = async () => {
+  if(!currentOrderId)return;
+  const status=document.getElementById('orderStatusSelect').value;
+  try {
+    await updateDoc(doc(db,'orders',currentOrderId),{status});
+    allOrders=allOrders.map(o=>o.id===currentOrderId?{...o,status}:o);
+    filterOrders();
+    renderDashboard();
+    closeModal('orderModal');
+    showToast('✅ Order status updated!','success');
+    const pending=allOrders.filter(o=>o.status==='confirmed').length;
+    document.getElementById('pendingBadge').textContent=pending;
+  } catch(e){showToast('Update error: '+e.message,'error');}
+};
+
+// ===== USERS PAGE =====
+function renderUsersPage() {
+  const users={};
+  allOrders.forEach(o=>{
+    if(o.userId&&!users[o.userId]){users[o.userId]={email:o.userEmail,name:o.userName,orders:0,spent:0};}
+    if(o.userId){users[o.userId].orders++;users[o.userId].spent+=o.total||0;}
+  });
+  const list=Object.entries(users);
+  document.getElementById('userCount').textContent=list.length+' users';
+  if(list.length===0){document.getElementById('usersTable').innerHTML=`<div class="empty-state"><i class="fas fa-users"></i><p>Koi registered user nahi hai abhi</p><small>Jab koi order karega tabhi dikhega</small></div>`;return;}
+  document.getElementById('usersTable').innerHTML=`<table>
+    <thead><tr><th>Name</th><th>Email</th><th>Total Orders</th><th>Total Spent</th></tr></thead>
+    <tbody>${list.map(([uid,u])=>`<tr>
+      <td><div style="display:flex;align-items:center;gap:10px"><div style="width:36px;height:36px;border-radius:50%;background:var(--primary);color:white;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0">${(u.name||u.email||'?')[0].toUpperCase()}</div><div style="font-weight:600;font-size:13px">${u.name||'Guest'}</div></div></td>
+      <td style="font-size:13px;color:var(--text-light)">${u.email||'-'}</td>
+      <td><span style="background:#e8f0fe;color:var(--primary);padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700">${u.orders} orders</span></td>
+      <td style="font-weight:700;color:var(--accent)">₹${u.spent.toLocaleString('en-IN')}</td>
+    </tr>`).join('')}</tbody></table>`;
+}
+
+// ===== ANALYTICS =====
+function renderAnalyticsPage() {
+  const totalRevenue=allOrders.filter(o=>o.status!=='cancelled').reduce((a,o)=>a+o.total,0);
+  const avgOrder=allOrders.length?Math.round(totalRevenue/allOrders.length):0;
+  const topProductsMap={};
+  allOrders.forEach(o=>{
+    (o.items||[]).forEach(item=>{
+      if(!topProductsMap[item.id]){topProductsMap[item.id]={name:item.name,emoji:item.emoji,qty:0,revenue:0};}
+      topProductsMap[item.id].qty+=item.qty;
+      topProductsMap[item.id].revenue+=item.qty*item.price;
+    });
+  });
+  const topProds=Object.values(topProductsMap).sort((a,b)=>b.revenue-a.revenue).slice(0,8);
+
+  // Monthly orders (last 6 months)
+  const monthlyData={};
+  allOrders.forEach(o=>{
+    if(!o.createdAt?.toDate)return;
+    const d=o.createdAt.toDate();
+    const key=d.toLocaleDateString('en-IN',{month:'short',year:'2-digit'});
+    monthlyData[key]=(monthlyData[key]||0)+o.total;
+  });
+  const months=Object.entries(monthlyData).slice(-6);
+  const maxM=Math.max(...months.map(m=>m[1]),1);
+
+  document.getElementById('analyticsCharts').innerHTML=`
+    <div class="chart-card">
+      <h4>📈 Revenue by Month</h4>
+      <div class="bar-chart">
+        ${months.length>0?months.map(([m,v])=>`<div class="bar-item">
+          <div class="bar-val">₹${(v/1000).toFixed(0)}k</div>
+          <div class="bar" style="height:${Math.max(10,v/maxM*90)}px;background:var(--primary);"></div>
+          <div class="bar-label">${m}</div>
+        </div>`).join(''):`<div style="color:var(--text-light);width:100%;text-align:center">No data yet</div>`}
+      </div>
+    </div>
+    <div class="chart-card">
+      <h4>📊 Key Metrics</h4>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div style="background:#e8f0fe;border-radius:8px;padding:16px;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--primary)">₹${(totalRevenue/1000).toFixed(0)}k</div><div style="font-size:12px;color:var(--text-light);margin-top:4px">Total Revenue</div></div>
+        <div style="background:#e8f5e9;border-radius:8px;padding:16px;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--accent)">₹${avgOrder.toLocaleString('en-IN')}</div><div style="font-size:12px;color:var(--text-light);margin-top:4px">Avg Order Value</div></div>
+        <div style="background:#fff3e0;border-radius:8px;padding:16px;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--warn)">${allOrders.filter(o=>o.status==='delivered').length}</div><div style="font-size:12px;color:var(--text-light);margin-top:4px">Delivered Orders</div></div>
+        <div style="background:#ffebee;border-radius:8px;padding:16px;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--danger)">${allOrders.filter(o=>o.status==='cancelled').length}</div><div style="font-size:12px;color:var(--text-light);margin-top:4px">Cancelled Orders</div></div>
+      </div>
+    </div>`;
+
+  document.getElementById('topProducts').innerHTML=topProds.length===0
+    ?`<div class="empty-state"><i class="fas fa-chart-bar"></i><p>Koi sales data nahi hai abhi</p></div>`
+    :`<table><thead><tr><th>#</th><th>Product</th><th>Units Sold</th><th>Revenue</th></tr></thead><tbody>
+      ${topProds.map((p,i)=>`<tr>
+        <td><span style="font-size:18px">${['🥇','🥈','🥉','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣'][i]||i+1}</span></td>
+        <td><div style="display:flex;align-items:center;gap:10px"><div style="font-size:28px">${p.emoji}</div><div style="font-weight:500;font-size:13px">${p.name?.substring(0,40)}</div></div></td>
+        <td><span style="background:#e8f0fe;color:var(--primary);padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700">${p.qty} units</span></td>
+        <td style="font-weight:700;color:var(--accent)">₹${p.revenue.toLocaleString('en-IN')}</td>
+      </tr>`).join('')}
+    </tbody></table>`;
+}
+
+// ===== PAGE NAV =====
+window.showPage = (page) => {
+  document.querySelectorAll('.page-content').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>{if(n.textContent.trim().toLowerCase().includes(page))n.classList.add('active');});
+  const titles={dashboard:'📊 Dashboard',products:'📦 Products',orders:'🛍️ Orders',users:'👥 Users',analytics:'📈 Analytics'};
+  document.getElementById('pageTitle').textContent=titles[page]||page;
+  if(page==='products'){filterProducts();}
+  else if(page==='orders'){renderOrdersTable(allOrders);}
+  else if(page==='users'){renderUsersPage();}
+  else if(page==='analytics'){renderAnalyticsPage();}
+};
+
+window.refreshAll = async () => {
+  showToast('Refreshing...'); await loadAll();
+  const current=document.querySelector('.nav-item.active');
+  const pages={dashboard:true,products:true,orders:true,users:true,analytics:true};
+  showPage('dashboard');
+  showToast('✅ Data refreshed!','success');
+};
+
+// ===== MODAL =====
+window.openModal=(id)=>document.getElementById(id).classList.add('open');
+window.closeModal=(id)=>document.getElementById(id).classList.remove('open');
+document.addEventListener('click',e=>{if(e.target.classList.contains('modal-overlay'))e.target.classList.remove('open');});
+
+// ===== TOAST =====
+window.showToast=(msg,type='')=>{const t=document.getElementById('toast');t.textContent=msg;t.className='toast show '+type;setTimeout(()=>t.classList.remove('show'),3000);};
+
+</script>
+</body>
+</html>
